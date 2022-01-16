@@ -2,6 +2,9 @@
 //##this controls the leds on timers, fans on timers, and humidifier based on sensor data and lmits##
 //##updates
 //#
+//##############################################
+//#########     SAVE AS 1.2.1    #################
+//##############################################
 //#
 //#
 //#   12/18/2021   ####   
@@ -12,7 +15,7 @@
 //    solution
 //       altereed pt2 = t2 in case 3 of sm3, ad=nd added a new pt counter to reset on 15, because the 2 minute counter kept flipping and keeping pin LOW.
 //#      added pt3 and pt3 for longer reset counters
-//#
+//#   
 //
 //    1/16/2022 #######
 ////      problem
@@ -22,7 +25,12 @@
 //          remove humi millis and reduce led and fan millis to one var
 //          organize variables and comments
 //          remove reset periods from state machines 2 and 3--led and fans-- and restructure to case 1 on, case 2 off (leds 12 hours each, fans 2 min, then 13 min)
-//          SAVE AS 1.2
+//        add room temperature, and tent temperature
+//
+//      1.2.1:
+//          fan circuit not quite working properly and when s3 switched after 2 minutes, it would freeze the pi and the fan was also not starting up quite right.  Wire looks weird need to rewire
+//        
+
 //###################################################################################
 
 #include <dht11.h>
@@ -32,12 +40,12 @@
 dht11 sensor;
 
 #define H1HIGH 92
-#define H1LOW 85
+#define H1LOW 89
 
 //relay pinouts
 #define H1Relay 10
 #define L1Relay 9
-#define F1Relay 3
+#define F1Relay 2
 //#define H2Relay 12
 //#define L2Relay 10
 //#define F2Relay 3
@@ -90,7 +98,7 @@ void SM_s1() {  //humidity state machine
       Serial.println(state_s1);
       Serial.println("Humi: ");
       Serial.println(sensor.humidity);
-
+      delay(500);
       if (sensor.humidity > H1HIGH) {  //over limit, turn off
         state_s1 = 1;
       }
@@ -105,7 +113,7 @@ void SM_s1() {  //humidity state machine
       Serial.println(state_s1);
       Serial.println("Humi: ");
       Serial.println(sensor.humidity);
-
+      delay(500);
       if (sensor.humidity < H1LOW) {   //under limit, turn on
         state_s1 = 0;
       }
@@ -127,7 +135,7 @@ void SM_s2() {  //led state machine
       
       Serial.println("s2: ");
       Serial.println(state_s2);
-      
+      delay(500);
       if ((t0 - lastLoff) - t12h > 0) {  //over 12 hours
         state_s2 = 1;                  //change state variable before break so machine loads in to other case next time it runs
         lastLon = t0;                  //set last On time counter in order to be able to zero-offset the math
@@ -140,10 +148,10 @@ void SM_s2() {  //led state machine
       
       Serial.println("s2: ");
       Serial.println(state_s2);
-      
+      delay(500);
       if ((t0 - lastLon) - t12h > 0) {  //over 12 hours
         state_s2 = 0;                  //change state variable before break so machine loads in to other case next time it runs
-        lastLoff = t0;                  //set last On time counter in order to be able to zero-offset the math
+        lastLoff = t0;                 //set last On time counter in order to be able to zero-offset the math
       }                        
     break;
       
@@ -161,7 +169,7 @@ void SM_s3() {  //fan state machine --runs for 15 minute loops
       
       Serial.println("s3: ");
       Serial.println(state_s3);
-      
+      delay(500);
       if ((t0 - lastFon) - t2m > 0) {    //over 2 minutes
         state_s3 = 1;                  //change state variable before break so machine loads in to other case next time it runs
         lastFoff = t0;                  //set last Off time counter (because this if statement is a step of turning it off) in order to be able to zero-offset the math
@@ -174,7 +182,8 @@ void SM_s3() {  //fan state machine --runs for 15 minute loops
       
       Serial.println("s3: ");
       Serial.println(state_s3);
-      
+      delay(500);
+
       if ((t0 - lastFoff) - t13m > 0) {   //over 2 minutes
         state_s3 = 0;                  //change state variable before break so machine loads in to other case next time it runs
         lastFon = t0;                  //set last On time counter in order to be able to zero-offset the math
@@ -189,11 +198,14 @@ void SM_s3() {  //fan state machine --runs for 15 minute loops
 
 void loop() {
   
-//  int chk = sensor.read(H1Pin);
+//  int chk = sensor.read(6);
+//  Serial.println(sensor.temperature*(1.8)+32);
   
 //  SM_s1();  /humi
+  delay(100);
   SM_s2();  //led
+  delay(100);
   SM_s3();  //fans
-
+  delay(100);
 
 }
